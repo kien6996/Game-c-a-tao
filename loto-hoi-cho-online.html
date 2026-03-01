@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎱 Lô Tô Hội Chợ Online</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&family=Merienda:wght@700;900&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<style>
+:root{--red:#c0392b;--dark-red:#7b241c;--gold:#f1c40f;--dgold:#b7950b;--cream:#fdf6e3;--brown:#5d3a1a;--green:#1e8449;--bg:#170700;--cbg:#fff9ec;--ink:#3d1f00}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Baloo 2',sans-serif;background:var(--bg);color:#fff;min-height:100vh;overflow-x:hidden;
+  background-image:radial-gradient(ellipse at 15% 10%,rgba(192,57,43,.3) 0,transparent 50%),radial-gradient(ellipse at 85% 90%,rgba(241,196,15,.15) 0,transparent 50%),repeating-linear-gradient(60deg,transparent,transparent 55px,rgba(241,196,15,.02) 55px,rgba(241,196,15,.02) 56px)}
+canvas#cfc{position:fixed;inset:0;pointer-events:none;z-index:9999}
+
+/* SCREENS */
+.screen{display:none;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.screen.on{display:flex}
+.box{background:linear-gradient(145deg,#2b1300,#160800);border:2.5px solid var(--gold);border-radius:22px;padding:34px 42px;max-width:460px;width:100%;box-shadow:0 0 60px rgba(241,196,15,.12),0 20px 50px rgba(0,0,0,.7);text-align:center}
+.box h2{font-family:'Merienda',cursive;font-size:1.75rem;color:var(--gold);margin-bottom:6px;text-shadow:0 0 20px rgba(241,196,15,.5),2px 2px 0 var(--dark-red)}
+.box p{color:rgba(255,255,255,.55);font-size:.88rem;line-height:1.6;margin-bottom:16px}
+.lanterns{font-size:2rem;letter-spacing:8px;filter:drop-shadow(0 0 10px rgba(241,196,15,.8));animation:sway 4s ease-in-out infinite alternate;margin-bottom:8px}
+@keyframes sway{from{transform:rotate(-4deg)}to{transform:rotate(4deg)}}
+
+/* INPUTS */
+input[type=text]{width:100%;padding:11px 16px;background:rgba(255,255,255,.07);border:1.5px solid rgba(241,196,15,.3);border-radius:11px;color:#fff;font-family:'Baloo 2',sans-serif;font-size:1rem;font-weight:600;outline:none;transition:.2s;margin-bottom:10px;text-align:center}
+input[type=text]:focus{border-color:var(--gold);background:rgba(241,196,15,.08)}
+input[type=text]::placeholder{color:rgba(255,255,255,.28);font-weight:400}
+select{width:100%;padding:11px 16px;background:rgba(255,255,255,.07);border:1.5px solid rgba(241,196,15,.3);border-radius:11px;color:#fff;font-family:'Baloo 2',sans-serif;font-size:.95rem;font-weight:600;outline:none;cursor:pointer;margin-bottom:10px;-webkit-appearance:none;text-align:center}
+select option{background:#2b1300;color:#fff}
+
+/* BUTTONS */
+.btn{border:none;border-radius:50px;font-family:'Baloo 2',sans-serif;font-weight:800;cursor:pointer;padding:12px 28px;transition:.2s;position:relative;overflow:hidden;font-size:.95rem;letter-spacing:.5px;display:inline-block}
+.btn::after{content:'';position:absolute;inset:0;background:linear-gradient(rgba(255,255,255,.12),transparent);pointer-events:none}
+.btn:active{transform:scale(.95)}.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#e67e22);color:var(--brown);box-shadow:0 4px 18px rgba(241,196,15,.4),0 2px 0 var(--dgold)}
+.btn-gold:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 7px 24px rgba(241,196,15,.55)}
+.btn-red{background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff;box-shadow:0 4px 14px rgba(231,76,60,.4)}
+.btn-blue{background:linear-gradient(135deg,#2980b9,#1a5276);color:#fff;box-shadow:0 4px 14px rgba(41,128,185,.4)}
+.btn-full{width:100%;margin-top:8px}
+.btn-sm{padding:7px 16px;font-size:.78rem}
+.divider{border:none;border-top:1px solid rgba(241,196,15,.18);margin:14px 0}
+
+/* LOBBY */
+.room-code{font-family:'Merienda',cursive;font-size:2.8rem;color:var(--gold);letter-spacing:12px;text-shadow:0 0 25px rgba(241,196,15,.5)}
+.player-list{width:100%;display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto;margin:10px 0;scrollbar-width:thin;scrollbar-color:var(--gold) transparent}
+.pitem{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 13px;font-size:.88rem;transition:.2s}
+.pitem.me{border-color:rgba(241,196,15,.4)}
+.ptag{font-size:.7rem;padding:2px 8px;border-radius:20px;font-weight:700}
+.tag-host{background:rgba(241,196,15,.2);color:var(--gold);border:1px solid rgba(241,196,15,.4)}
+.tag-me{background:rgba(52,152,219,.2);color:#3498db;border:1px solid rgba(52,152,219,.4)}
+.csel{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
+.csel-btn{background:rgba(241,196,15,.08);border:2px solid rgba(241,196,15,.22);color:rgba(255,255,255,.75);border-radius:10px;padding:9px 4px;cursor:pointer;font-family:'Baloo 2',sans-serif;font-size:.8rem;font-weight:700;transition:.2s;text-align:center}
+.csel-btn:hover{border-color:var(--gold);background:rgba(241,196,15,.15)}
+.csel-btn.sel{background:var(--gold);border-color:var(--gold);color:var(--brown)}
+.bal-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(241,196,15,.1);border:1px solid rgba(241,196,15,.28);border-radius:50px;padding:5px 14px;font-size:.85rem}
+.bal-num{font-weight:800;color:var(--gold);transition:.25s}
+.bal-num.bump{transform:scale(1.25)}
+.copy-btn{background:rgba(241,196,15,.14);border:1px solid rgba(241,196,15,.38);color:var(--gold);border-radius:8px;padding:4px 12px;font-size:.72rem;cursor:pointer;font-family:'Baloo 2',sans-serif;font-weight:700;transition:.2s}
+.copy-btn:hover{background:rgba(241,196,15,.28)}
+.err{color:#e74c3c;font-size:.78rem;min-height:18px;margin-top:4px}
+
+/* GAME LAYOUT */
+#game-screen.on{display:grid;grid-template-columns:230px 1fr 255px;grid-template-rows:auto 1fr;min-height:100vh}
+@media(max-width:1000px){#game-screen.on{grid-template-columns:1fr;grid-template-rows:auto}}
+.ghdr{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:rgba(0,0,0,.45);border-bottom:1px solid rgba(241,196,15,.15)}
+.gtitle{font-family:'Merienda',cursive;color:var(--gold);font-size:.98rem}
+.side{background:rgba(0,0,0,.32);display:flex;flex-direction:column;gap:10px;padding:12px 10px;overflow-y:auto;border-right:1px solid rgba(241,196,15,.1)}
+.side.right{border-right:none;border-left:1px solid rgba(241,196,15,.1)}
+.phd{font-family:'Merienda',cursive;font-size:.82rem;color:var(--gold);letter-spacing:2px;border-bottom:1px solid rgba(241,196,15,.18);padding-bottom:5px;margin-bottom:2px;text-align:center}
+.center{display:flex;flex-direction:column;align-items:center;gap:11px;padding:12px 18px;overflow-y:auto}
+
+/* BALL STAGE */
+.ball-stage{background:radial-gradient(circle at 30% 30%,#2e1400,#0c0400);border:3px solid var(--gold);border-radius:20px;width:100%;padding:18px;text-align:center;position:relative;overflow:hidden;box-shadow:0 0 40px rgba(241,196,15,.18),inset 0 0 30px rgba(0,0,0,.5)}
+.ball-stage::before{content:'';position:absolute;inset:0;background:repeating-radial-gradient(circle at 50% 50%,transparent 0,transparent 32px,rgba(241,196,15,.025) 32px,rgba(241,196,15,.025) 33px)}
+.abadge{display:inline-flex;align-items:center;gap:5px;background:rgba(192,57,43,.6);border:1px solid rgba(241,196,15,.38);border-radius:20px;padding:3px 13px;font-size:.68rem;letter-spacing:3px;color:var(--gold);margin-bottom:8px;text-transform:uppercase}
+.bigball{width:115px;height:115px;border-radius:50%;position:relative;z-index:1;background:radial-gradient(circle at 35% 28%,rgba(255,255,255,.55) 0%,var(--gold) 35%,#e67e22 65%,var(--dark-red) 100%);display:flex;align-items:center;justify-content:center;margin:8px auto;font-size:2.9rem;font-weight:900;font-family:'Merienda',cursive;color:#fff;text-shadow:1px 2px 5px rgba(0,0,0,.6);box-shadow:0 6px 24px rgba(0,0,0,.55),inset 0 -4px 8px rgba(0,0,0,.3),inset 0 4px 8px rgba(255,255,255,.22)}
+.bigball.pop{animation:bpop .42s cubic-bezier(.36,.07,.19,.97)}
+@keyframes bpop{0%{transform:scale(.2) rotate(-25deg);opacity:.2}55%{transform:scale(1.25) rotate(6deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+.ho-box{background:rgba(192,57,43,.14);border:1.5px solid rgba(192,57,43,.45);border-radius:14px;padding:11px 15px;width:100%;min-height:78px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;position:relative}
+.ho-box::before{content:'🎙️';position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--bg);padding:0 5px;font-size:1rem}
+.ho-so{font-size:1.25rem;font-weight:800;color:var(--gold);letter-spacing:1px}
+.ho-text{font-size:.9rem;color:rgba(255,255,255,.88);font-style:italic;line-height:1.4;text-align:center}
+.ho-sub{font-size:.68rem;color:rgba(241,196,15,.55);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+
+/* CALLED GRID */
+.cgrid-wrap{width:100%;background:rgba(0,0,0,.3);border-radius:11px;padding:8px;border:1px solid rgba(241,196,15,.16)}
+.cgrid{display:grid;grid-template-columns:repeat(9,1fr);gap:3px}
+.clbl{font-size:.48rem;color:rgba(241,196,15,.42);text-align:center;padding-bottom:2px}
+.cnum{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:5px;font-size:.63rem;font-weight:700;background:rgba(255,255,255,.04);color:rgba(255,255,255,.2);transition:.3s}
+.cnum.hit{background:var(--red);color:var(--gold);box-shadow:0 0 5px rgba(241,196,15,.3)}
+.cnum.new{animation:numhit .5s ease-out}
+@keyframes numhit{0%{transform:scale(1.8);background:#fff;color:var(--red)}100%{transform:scale(1)}}
+
+/* LOTO CARD */
+.lcard{background:var(--cbg);border:2.5px solid var(--gold);border-radius:11px;overflow:hidden;box-shadow:0 5px 18px rgba(0,0,0,.5);margin-bottom:10px}
+.card-hdr{background:var(--red);color:var(--gold);display:flex;justify-content:space-between;align-items:center;padding:5px 11px;font-weight:800;font-size:.78rem;letter-spacing:1.5px}
+.card-grid{display:grid;grid-template-columns:repeat(9,1fr);border-top:2px solid var(--gold)}
+.cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:clamp(.55rem,1.6vw,.8rem);font-weight:800;border-right:1px solid rgba(139,90,43,.22);border-top:1px solid rgba(139,90,43,.22);background:var(--cbg);color:var(--ink);position:relative;user-select:none;transition:background .22s}
+.cell.empty{background:#f4e3bf}
+.cell.marked{background:var(--red)!important;color:#fff}
+.cell.marked::after{content:'✕';position:absolute;font-size:1.3em;font-weight:900;opacity:.9}
+.cell.row-ok{background:var(--green)!important;color:#fff}
+.cell.row-ok::after{content:'✕';position:absolute;font-size:1.3em;font-weight:900;opacity:.85}
+.cell.loto-c{background:var(--gold)!important;color:var(--brown)}
+.cell.loto-c::after{content:'✕';position:absolute;font-size:1.3em;font-weight:900;opacity:.85}
+
+/* CLAIM BUTTONS */
+.claim-area{width:100%;display:flex;flex-direction:column;gap:8px}
+.cbtn{border:none;border-radius:13px;font-family:'Baloo 2',sans-serif;font-weight:900;cursor:pointer;padding:14px;font-size:1.05rem;width:100%;letter-spacing:.5px;animation:cpulse 1.1s ease-in-out infinite}
+@keyframes cpulse{0%,100%{box-shadow:0 0 0 0 rgba(241,196,15,.7)}50%{box-shadow:0 0 0 10px rgba(241,196,15,0)}}
+.cbtn-xo{background:linear-gradient(135deg,#f39c12,#e67e22);color:#fff}
+.cbtn-loto{background:linear-gradient(135deg,var(--gold),#f39c12);color:var(--brown);font-size:1.2rem}
+
+/* CONTROLS */
+.ctrl{display:flex;gap:8px;width:100%;flex-wrap:wrap;justify-content:center}
+.al{display:flex;align-items:center;gap:6px;font-size:.8rem;color:rgba(255,255,255,.5);cursor:pointer;padding:6px 11px;border:1px solid rgba(255,255,255,.1);border-radius:20px;transition:.2s}
+.al:hover{border-color:var(--gold);color:var(--gold)}
+.al input{accent-color:var(--gold)}
+.spd-row{display:flex;align-items:center;gap:7px;font-size:.78rem;color:rgba(255,255,255,.4)}
+.spd-row input[type=range]{accent-color:var(--gold);width:90px;cursor:pointer}
+
+/* PLAYER MINI CARD */
+.pmini{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 11px;font-size:.8rem;margin-bottom:6px}
+.pmini.me{border-color:rgba(241,196,15,.38)}
+.pmini .pn{font-weight:800;display:flex;align-items:center;gap:5px;margin-bottom:3px;flex-wrap:wrap}
+.rchip{font-size:.62rem;padding:2px 7px;border-radius:10px;font-weight:700;margin-top:3px;display:inline-block}
+.rchip.won{background:rgba(39,174,96,.3);color:#27ae60;border:1px solid rgba(39,174,96,.35)}
+.rchip.lt{background:rgba(241,196,15,.3);color:var(--gold);border:1px solid rgba(241,196,15,.35)}
+.rchip.idle{background:rgba(255,255,255,.08);color:rgba(255,255,255,.38);border:1px solid rgba(255,255,255,.08)}
+
+/* LOG */
+.logwrap{width:100%;max-height:130px;overflow-y:auto;background:rgba(0,0,0,.28);border-radius:8px;padding:6px 8px;border:1px solid rgba(241,196,15,.1);scrollbar-width:thin;scrollbar-color:var(--gold) transparent}
+.lentry{font-size:.68rem;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;justify-content:space-between;color:rgba(255,255,255,.52)}
+.lwn{color:var(--gold);font-weight:700}
+
+/* STAT ROW */
+.srow{display:flex;justify-content:space-between;width:100%;font-size:.76rem;color:rgba(255,255,255,.42)}
+.srow span{color:rgba(255,255,255,.85);font-weight:700}
+.prog-wrap{width:100%;height:5px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden}
+.prog{height:100%;background:linear-gradient(90deg,var(--red),var(--gold));transition:width .5s}
+
+/* TOAST */
+#toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);z-index:1000;background:linear-gradient(135deg,var(--gold),#e67e22);color:var(--brown);padding:26px 46px;border-radius:20px;text-align:center;pointer-events:none;box-shadow:0 20px 60px rgba(0,0,0,.8);transition:transform .38s cubic-bezier(.34,1.56,.64,1);max-width:90vw}
+#toast.show{transform:translate(-50%,-50%) scale(1)}
+#toast h2{font-family:'Merienda',cursive;font-size:1.8rem}
+#toast p{font-size:.92rem;margin-top:4px}
+
+/* PRIZE TABLE */
+.ptbl{font-size:.7rem;color:rgba(255,255,255,.58);line-height:2}
+
+/* STATUS */
+.status-msg{text-align:center;font-size:.8rem;color:rgba(255,255,255,.4);padding:6px;min-height:26px}
+.loading{color:rgba(241,196,15,.6);animation:blink 1.2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+</style>
+</head>
+<body>
+<canvas id="cfc"></canvas>
+<div id="toast"><h2 id="t-ttl">🎉</h2><p id="t-msg"></p></div>
+
+<!-- ════════ HOME ════════ -->
+<div id="home-screen" class="screen on">
+  <div style="text-align:center;margin-bottom:22px">
+    <div class="lanterns">🏮 🎱 🏮 🎱 🏮</div>
+    <h1 style="font-family:'Merienda',cursive;font-size:clamp(2rem,7vw,3.6rem);color:var(--gold);text-shadow:0 0 25px rgba(241,196,15,.55),3px 3px 0 var(--dark-red)">LÔ TÔ HỘI CHỢ</h1>
+    <p style="color:rgba(255,255,255,.38);font-size:.82rem;letter-spacing:3px">MULTIPLAYER ONLINE</p>
+  </div>
+  <div class="box">
+    <div class="bal-chip" style="justify-content:center;margin-bottom:16px">💰 Xu ảo: <span class="bal-num" id="home-bal">10,000 🪙</span></div>
+    <input type="text" id="ni" placeholder="Nhập tên của bạn..." maxlength="16">
+    <hr class="divider">
+    <button class="btn btn-gold btn-full" onclick="doCreate()">🏮 Tạo phòng mới</button>
+    <div style="margin:13px 0;display:flex;align-items:center;gap:10px">
+      <div style="flex:1;height:1px;background:rgba(241,196,15,.18)"></div>
+      <span style="color:rgba(255,255,255,.3);font-size:.78rem">hoặc</span>
+      <div style="flex:1;height:1px;background:rgba(241,196,15,.18)"></div>
+    </div>
+    <input type="text" id="ji" placeholder="MÃ PHÒNG (5 chữ)" maxlength="5" style="text-transform:uppercase;letter-spacing:7px">
+    <button class="btn btn-blue btn-full" onclick="doJoin()">🎴 Vào phòng</button>
+    <div class="err" id="herr"></div>
+  </div>
+</div>
+
+<!-- ════════ LOBBY ════════ -->
+<div id="lobby-screen" class="screen">
+  <div class="box" style="max-width:500px">
+    <div class="lanterns" style="font-size:1.4rem;margin-bottom:4px">🏮 🎱 🏮</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:3px">
+      <span style="color:rgba(255,255,255,.45);font-size:.8rem">Mã phòng:</span>
+      <span class="room-code" id="lcode">—</span>
+      <button class="copy-btn" onclick="cpCode()">📋 Copy</button>
+    </div>
+    <p style="font-size:.72rem;color:rgba(255,255,255,.3);margin-bottom:12px">Chia sẻ mã này cho bạn bè để cùng vào phòng</p>
+    <div class="phd">👥 NGƯỜI CHƠI (<span id="pcnt">0</span>)</div>
+    <div class="player-list" id="lplist"></div>
+    <hr class="divider">
+    <div style="text-align:left">
+      <div style="font-size:.78rem;color:rgba(241,196,15,.55);letter-spacing:2px;margin-bottom:6px">🎴 CHỌN SỐ VÉ</div>
+      <div class="csel" id="csel">
+        <button class="csel-btn sel" onclick="pickCards(1,this)">1 vé<br><small style="font-weight:400">500🪙</small></button>
+        <button class="csel-btn" onclick="pickCards(2,this)">2 vé<br><small style="font-weight:400">1,000🪙</small></button>
+        <button class="csel-btn" onclick="pickCards(3,this)">3 vé<br><small style="font-weight:400">1,500🪙</small></button>
+        <button class="csel-btn" onclick="pickCards(4,this)">4 vé<br><small style="font-weight:400">2,000🪙</small></button>
+      </div>
+      <div style="font-size:.72rem;color:rgba(255,255,255,.32);margin-top:3px" id="lbal-info"></div>
+    </div>
+    <div id="hctrl" style="display:none;margin-top:10px">
+      <div class="err" id="lerr" style="color:rgba(241,196,15,.6);font-size:.8rem;margin-bottom:6px"></div>
+      <button class="btn btn-gold btn-full" onclick="doStart()" id="sbtn">🎱 BẮT ĐẦU VÁN CHƠI</button>
+    </div>
+    <div id="gwait" style="display:none;color:rgba(255,255,255,.38);font-size:.82rem;text-align:center;padding:10px">⏳ Chờ chủ phòng bắt đầu...</div>
+    <button class="btn btn-red btn-full btn-sm" onclick="doLeave()" style="margin-top:10px">🚪 Rời phòng</button>
+  </div>
+</div>
+
+<!-- ════════ GAME ════════ -->
+<div id="game-screen" class="screen">
+  <!-- Header -->
+  <div class="ghdr">
+    <span class="gtitle">🎱 Lô Tô Hội Chợ</span>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="bal-chip"><span class="bal-num" id="gbal">0 🪙</span></span>
+      <span style="font-size:.72rem;color:rgba(255,255,255,.3)" id="rlbl">Ván 1</span>
+      <span style="font-size:.72rem;color:rgba(255,255,255,.3)" id="room-lbl"></span>
+      <button class="btn btn-red btn-sm" onclick="doLeave()">🚪 Rời</button>
+    </div>
+  </div>
+
+  <!-- Left: Players -->
+  <div class="side" id="spl">
+    <div class="phd">👥 NGƯỜI CHƠI</div>
+    <div id="pgame"></div>
+    <hr class="divider" style="margin:4px 0">
+    <div class="phd">📜 DIỄN BIẾN</div>
+    <div class="logwrap" id="glog"></div>
+  </div>
+
+  <!-- Center -->
+  <div class="center">
+    <div class="ball-stage">
+      <div class="abadge">🎙️ NGƯỜI HÔ</div>
+      <div class="bigball" id="mball">?</div>
+      <div class="ho-box">
+        <div class="ho-so" id="hso">— — —</div>
+        <div class="ho-text" id="htxt">Nhấn quay để bắt đầu ván</div>
+        <div class="ho-sub" id="hsub">LÔ TÔ HỘI CHỢ</div>
+      </div>
+    </div>
+
+    <div style="width:100%">
+      <div class="srow"><div>Đã hô: <span id="dcnt">0</span>/90</div><div>Còn: <span id="rcnt">90</span></div></div>
+      <div class="prog-wrap" style="margin-top:4px"><div class="prog" id="prog" style="width:0%"></div></div>
+    </div>
+
+    <!-- HOST controls -->
+    <div id="hgctrl" style="display:none;width:100%">
+      <div class="ctrl">
+        <button class="btn btn-gold" id="dbtn" onclick="hostDraw()" style="font-size:1.05rem;padding:13px 34px">🎱 QUAY SỐ</button>
+        <button class="btn btn-red btn-sm" onclick="hostNewRound()">🔄 Ván mới</button>
+      </div>
+      <div class="ctrl" style="margin-top:6px">
+        <label class="al"><input type="checkbox" id="acb" onchange="toggleAuto()"> Auto quay</label>
+        <label class="al"><input type="checkbox" id="dcb" checked> Auto đánh số</label>
+      </div>
+      <div class="spd-row" style="justify-content:center;margin-top:4px">
+        <span>🐌</span>
+        <input type="range" id="spd" min="600" max="3200" value="1800" step="200" oninput="onSpdChg()">
+        <span>🐇</span><span id="slbl">1.8s</span>
+      </div>
+    </div>
+
+    <!-- GUEST controls -->
+    <div id="ggctrl" style="display:none;width:100%;text-align:center">
+      <label class="al" style="justify-content:center;margin:0 auto"><input type="checkbox" id="dcbg" checked> Auto đánh số</label>
+      <div class="status-msg loading" id="gstatus">⏳ Chờ quản trò quay số...</div>
+    </div>
+
+    <!-- Claim buttons -->
+    <div class="claim-area" id="claim-area"></div>
+
+    <!-- Called numbers -->
+    <div class="cgrid-wrap"><div class="cgrid" id="cgrid"></div></div>
+
+    <div class="status-msg" id="gstatus2"></div>
+  </div>
+
+  <!-- Right: My cards + prizes -->
+  <div class="side right" id="smy">
+    <div class="phd">🎴 VÉ CỦA BẠN</div>
+    <div id="mycards"></div>
+    <hr class="divider" style="margin:4px 0">
+    <div class="phd">🏆 BẢNG THƯỞNG</div>
+    <div class="ptbl" id="ptbl"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// FIREBASE INIT
+// ══════════════════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyCL6i5yCd6nOR25mVBrck2tlxY-CmaZCfE",
+  authDomain: "lotto207.firebaseapp.com",
+  databaseURL: "https://lotto207-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "lotto207",
+  storageBucket: "lotto207.firebasestorage.app",
+  messagingSenderId: "939283007062",
+  appId: "1:939283007062:web:bcf4615d0ab44527efddf7"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ══════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════
+const BET = 500;
+const PRIZES = { row1:800, row2:1200, row3:2000, loto:12000 };
+const AVATARS = ['🐉','🦁','🐯','🦊','🐼','🦅','🐺','🦄'];
+let myId = null, myName = '', myRoom = '', isHost = false;
+let myBalance = 10000, myNumCards = 1;
+let myAvatar = AVATARS[~~(Math.random()*AVATARS.length)];
+// Local card state
+let myCards = []; // [{grid:[[]], marked:Set, rowsWon:Set, fullWon:false}]
+let claimedKeys = new Set(); // "0-row-1", "0-full", etc.
+let autoTimer = null;
+let roomRef = null, roomListener = null;
+let latestDrawn = []; // full drawn array from Firebase
+let latestBall = null;
+let gamePhase = 'home';
+
+// ══════════════════════════════════════════════════════════════
+// HÔ KINH - 90 số truyền thống
+// ══════════════════════════════════════════════════════════════
+const HO = {
+1:["Số MỘT — nhất thiên hạ","Mình ên một cõi trời ơi!"],
+2:["Số HAI — đôi lứa yêu nhau","Con đôi song hành mãi!"],
+3:["Số BA — tam đa phúc lộc","Một hai ba bốn đây!"],
+4:["Số BỐN — tứ hải giai huynh","Bốn phương trời xanh!"],
+5:["Số NĂM — ngũ phúc lâm môn","Năm ngón tay vàng!"],
+6:["Số SÁU — lục súc tranh công","Sáu lạng vàng đây!"],
+7:["Số BẢY — thất thượng bát hạ","Bảy sắc cầu vồng!"],
+8:["Số TÁM — phát phát phát nào","Bát tiên hội tụ!"],
+9:["Số CHÍN — cửu trùng thiên tử","Chín cánh hoa xuân!"],
+10:["Số MƯỜI — chục xu tròn đủ","Một chục đủ rồi!"],
+11:["Mười MỘT — thẻ bài lính mộ","Mười một que đây!"],
+12:["Mười HAI — tá hàng tá chợ","Mười hai giờ khuya!"],
+13:["Mười BA — bà già ham vui","Ổng mười ba đây!"],
+14:["Mười BỐN — hai lần bảy đây","Tháng tư mưa rơi!"],
+15:["Mười LĂM — rằm tháng giêng đẹp","Trăng rằm tròn rồi!"],
+16:["Mười SÁU — tuổi trăng tròn đây","Xuân xanh mười sáu!"],
+17:["Mười BẢY — tháng bảy mưa ngâu","Mưa rơi tí tách!"],
+18:["Mười TÁM — tuổi vừa đôi mươi","Trưởng thành rồi nha!"],
+19:["Mười CHÍN — gần hai chục rồi","Kém một thôi nào!"],
+20:["Hai MƯƠI — đôi chục tròn đây","Hai chục đủ rồi!"],
+21:["Hai mươi MỐT — đôi mươi mốt","Cờ tướng sang đây!"],
+22:["Hai HAI — đôi đôi hai hai","Đôi bàn tay vàng!"],
+23:["Hai BA — hai ba người ba ngả","Chia tay nhau thôi!"],
+24:["Hai BỐN — hai tám bằng hai bốn","Nhân đôi vào đây!"],
+25:["Hai LĂM — nửa trăm còn thiếu","Hai mươi lăm nhé!"],
+26:["Hai SÁU — bước đường trần ai","Đi từng bước thôi!"],
+27:["Hai BẢY — phân nửa năm tư","Tháng tư ơi ơi!"],
+28:["Hai TÁM — tháng hai ngắn nhất","Năm nhuận đây rồi!"],
+29:["Hai CHÍN — gần ba chục rồi","Kém một thôi nào!"],
+30:["Ba CHỤC — ông già ba mươi","Ba mươi tuổi đây!"],
+31:["Ba mươi MỐT — thêm một chút nữa","Mốt thêm vào đây!"],
+32:["Ba HAI — ba mươi hai chiếc răng","Cười nào ơi nào!"],
+33:["Ba BA — tam tam hội ngộ","Ba ba lắp lại!"],
+34:["Ba BỐN — ba bốn chục xuân","Chưa già đâu nha!"],
+35:["Ba LĂM — ba mươi lăm tuổi","Đang sung sức đây!"],
+36:["Ba SÁU — tam thập lục kế","Mưu sâu kế dài!"],
+37:["Ba BẢY — ba bảy hai mươi mốt","Nhân ba bảy đây!"],
+38:["Ba TÁM — gần bốn chục rồi","Thêm hai nữa thôi!"],
+39:["Ba CHÍN — kém tứ thập một","Gần bốn chục đây!"],
+40:["Bốn CHỤC — tứ thập nhi lập","Đứng vững rồi đây!"],
+41:["Bốn mươi MỐT — thêm kinh nghiệm","Bốn mốt tuổi đây!"],
+42:["Bốn HAI — cộng thêm sáu đó","Bốn mươi hai nhé!"],
+43:["Bốn BA — lá bay gió thu","Mùa thu đến rồi!"],
+44:["Bốn BỐN — tứ tứ thập tứ","Bốn bốn phát tài!"],
+45:["Bốn LĂM — nửa chín mươi đây","Trung điểm rồi nhé!"],
+46:["Bốn SÁU — bốn sáu giờ một ngày","Đồng hồ điểm đây!"],
+47:["Bốn BẢY — bốn bảy ba mươi chín","Tích số đây nào!"],
+48:["Bốn TÁM — một giờ bốn tám phút","Đồng hồ kêu đây!"],
+49:["Bốn CHÍN — gần năm chục rồi","Chỉ một thôi nha!"],
+50:["Năm CHỤC — ngũ thập tri mệnh","Hiểu lẽ trời đây!"],
+51:["Năm mươi MỐT — sang nửa sau","Khôn hơn rồi đây!"],
+52:["Năm HAI — năm hai tuần lá đổ","Thu vàng đây rồi!"],
+53:["Năm BA — năm ba người bạn thân","Tri kỷ đây nào!"],
+54:["Năm BỐN — năm bốn cây số đó","Gần nhà chưa đây!"],
+55:["Năm NĂM — ngũ ngũ năm năm","Ngũ phúc đến đây!"],
+56:["Năm SÁU — năm sáu mươi phút","Giờ giải lao thôi!"],
+57:["Năm BẢY — năm bảy ba mươi lăm","Tích số đây rồi!"],
+58:["Năm TÁM — đếm nhanh nào ơi","Năm tám giây thôi!"],
+59:["Năm CHÍN — sắp đến sáu chục","Chỉ một thôi đây!"],
+60:["Sáu CHỤC — lục thập hoa giáp","Đủ một vòng rồi!"],
+61:["Sáu mươi MỐT — bạch phát sinh","Thêm tuổi thọ đây!"],
+62:["Sáu HAI — sáu hai năm thắng","Mừng chiến công nào!"],
+63:["Sáu BA — sáu ba bước chân","Thung dung thôi nhé!"],
+64:["Sáu BỐN — sáu bốn ô cờ vua","Đấu trí đây nào!"],
+65:["Sáu LĂM — tuổi về hưu rồi","An nhàn thảnh thơi!"],
+66:["Sáu SÁU — lục lục phát tài","Lộc đến đầy nhà!"],
+67:["Sáu BẢY — gần bảy chục rồi","Thêm ba nữa thôi!"],
+68:["Sáu TÁM — phát tài phát lộc","Vận may đến đây!"],
+69:["Sáu CHÍN — âm dương hợp nhất","Thuận lòng trời đây!"],
+70:["Bảy CHỤC — thất thập cổ lai hy","Hiếm có lắm đây!"],
+71:["Bảy mươi MỐT — phúc như biển","Thọ trường đây nào!"],
+72:["Bảy HAI — bảy mươi hai tháng","Sáu năm trọn vẹn!"],
+73:["Bảy BA — chưa già đâu nha","Còn minh mẫn lắm!"],
+74:["Bảy BỐN — bảy bốn mùa xuân","Trường thọ đây rồi!"],
+75:["Bảy LĂM — bảy mươi lăm vẫn khỏe","Tứ khỏe đây nào!"],
+76:["Bảy SÁU — chiều thu nhớ ai","Lá vàng rơi thôi!"],
+77:["Bảy BẢY — thất thất may mắn","Phát tài đây nào!"],
+78:["Bảy TÁM — hòa điệu âm nhạc","Giai điệu vui đây!"],
+79:["Bảy CHÍN — gần tám chục rồi","Thêm một nữa thôi!"],
+80:["Tám CHỤC — bát thập trường thọ","Phúc đức đầy nhà!"],
+81:["Tám mươi MỐT — mạnh khoẻ lắm","Thần thái tốt đây!"],
+82:["Tám HAI — chưa muốn nghỉ đâu","Còn sung sức lắm!"],
+83:["Tám BA — tuổi minh mẫn thôi","Trí tuệ cao vời!"],
+84:["Tám BỐN — lộc trời ban cho","Phúc khắp mọi nơi!"],
+85:["Tám LĂM — năm thọ trường đây","Phúc lộc đầy nhà!"],
+86:["Tám SÁU — vận may đến rồi","Trời phù hộ đây!"],
+87:["Tám BẢY — chưa muốn về đâu","Còn vui lắm mà!"],
+88:["Tám TÁM — bát bát phát phát","Phát tài to đây!"],
+89:["Tám CHÍN — gần chín chục rồi","Thêm chút nữa thôi!"],
+90:["CHÍN CHỤC — cửu thập toàn bích","Bảng vàng đây rồi!"],
+};
+
+function getHo(n) {
+  const a = HO[n] || [`Số ${n}!`, `Con số ${n} đây!`];
+  const i = ~~(Math.random()*a.length);
+  return { so: `Con số — ${n}`, text: a[i] };
+}
+
+// ══════════════════════════════════════════════════════════════
+// PLAYER ID (localStorage - local only)
+// ══════════════════════════════════════════════════════════════
+function initPlayer() {
+  let pid = localStorage.getItem('loto_pid');
+  if (!pid) { pid = 'P'+Math.random().toString(36).slice(2,9).toUpperCase(); localStorage.setItem('loto_pid',pid); }
+  myId = pid;
+  const bal = parseFloat(localStorage.getItem('loto_bal'));
+  if (!isNaN(bal) && bal >= 0) myBalance = bal;
+  const nm = localStorage.getItem('loto_name');
+  if (nm) { myName = nm; document.getElementById('ni').value = nm; }
+  document.getElementById('home-bal').textContent = myBalance.toLocaleString()+' 🪙';
+}
+function saveBalance() { localStorage.setItem('loto_bal', myBalance); }
+
+// ══════════════════════════════════════════════════════════════
+// SCREEN
+// ══════════════════════════════════════════════════════════════
+function showScreen(id) {
+  ['home-screen','lobby-screen','game-screen'].forEach(s=>{
+    const el=document.getElementById(s);
+    if(el){el.classList.remove('on');}
+  });
+  document.getElementById(id).classList.add('on');
+  gamePhase = id==='home-screen'?'home':id==='lobby-screen'?'lobby':'game';
+}
+function showErr(id,msg){const el=document.getElementById(id);if(el){el.textContent=msg;setTimeout(()=>{if(el.textContent===msg)el.textContent=''},4000);}}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+
+// ══════════════════════════════════════════════════════════════
+// HOME
+// ══════════════════════════════════════════════════════════════
+function genCode(){return Math.random().toString(36).slice(2,7).toUpperCase()}
+
+async function doCreate(){
+  const name=document.getElementById('ni').value.trim();
+  if(!name){showErr('herr','Nhập tên của bạn trước!');return;}
+  myName=name; localStorage.setItem('loto_name',name);
+  const code=genCode();
+  myRoom=code; isHost=true;
+  const roomData={
+    phase:'lobby', host:myId, round:1, drawn:[], currentBall:null,
+    players:{ [myId]:{name,avatar:myAvatar,balance:myBalance,numCards:1,online:Date.now()} }
+  };
+  try{
+    await db.ref('rooms/'+code).set(roomData);
+    showLobby();
+    listenRoom();
+  }catch(e){showErr('herr','Lỗi kết nối Firebase: '+e.message);}
+}
+
+async function doJoin(){
+  const name=document.getElementById('ni').value.trim();
+  const code=document.getElementById('ji').value.trim().toUpperCase();
+  if(!name){showErr('herr','Nhập tên của bạn trước!');return;}
+  if(code.length!==5){showErr('herr','Mã phòng phải đủ 5 ký tự!');return;}
+  myName=name; localStorage.setItem('loto_name',name);
+  try{
+    const snap=await db.ref('rooms/'+code).once('value');
+    if(!snap.exists()){showErr('herr','Không tìm thấy phòng này!');return;}
+    const st=snap.val();
+    if(st.phase==='playing'){showErr('herr','Ván đang diễn ra, đợi ván mới nhé!');return;}
+    const pcount=Object.keys(st.players||{}).length;
+    if(pcount>=8){showErr('herr','Phòng đã đầy (8 người)!');return;}
+    myRoom=code; isHost=false;
+    await db.ref('rooms/'+code+'/players/'+myId).set({name,avatar:myAvatar,balance:myBalance,numCards:1,online:Date.now()});
+    showLobby();
+    listenRoom();
+  }catch(e){showErr('herr','Lỗi: '+e.message);}
+}
+
+// ══════════════════════════════════════════════════════════════
+// LOBBY
+// ══════════════════════════════════════════════════════════════
+function showLobby(){
+  showScreen('lobby-screen');
+  document.getElementById('lcode').textContent=myRoom;
+  document.getElementById('hctrl').style.display=isHost?'block':'none';
+  document.getElementById('gwait').style.display=isHost?'none':'block';
+  updateLbalInfo();
+}
+
+function updateLbalInfo(){
+  const cost=myNumCards*BET;
+  const el=document.getElementById('lbal-info');
+  if(el) el.textContent=`Số dư: ${myBalance.toLocaleString()}🪙 — Phí: ${cost.toLocaleString()}🪙 → còn ${(myBalance-cost).toLocaleString()}🪙`;
+}
+
+function pickCards(n,btn){
+  myNumCards=n;
+  document.querySelectorAll('.csel-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  updateLbalInfo();
+  // Update Firebase
+  if(myRoom) db.ref('rooms/'+myRoom+'/players/'+myId+'/numCards').set(n);
+}
+
+function renderLobby(st){
+  const ps=st.players||{};
+  document.getElementById('pcnt').textContent=Object.keys(ps).length;
+  const html=Object.entries(ps).map(([pid,p])=>{
+    const tags=[];
+    if(pid===st.host) tags.push('<span class="ptag tag-host">👑 Chủ phòng</span>');
+    if(pid===myId) tags.push('<span class="ptag tag-me">← Bạn</span>');
+    return `<div class="pitem${pid===myId?' me':''}">
+      <span style="font-size:1.3rem">${p.avatar||'🎴'}</span>
+      <span style="flex:1;font-weight:700">${esc(p.name)}</span>
+      <span style="font-size:.72rem;color:rgba(255,255,255,.4)">${p.numCards||1} vé</span>
+      ${tags.join('')}
+    </div>`;
+  }).join('');
+  document.getElementById('lplist').innerHTML=html;
+  if(isHost){
+    const can=Object.keys(ps).length>=1;
+    document.getElementById('sbtn').disabled=!can;
+    document.getElementById('lerr').textContent=Object.keys(ps).length<2?'💡 Có thể test 1 mình hoặc đợi bạn tham gia':'';
+  }
+}
+
+async function doStart(){
+  if(!isHost)return;
+  const snap=await db.ref('rooms/'+myRoom).once('value');
+  const st=snap.val();
+  if(!st)return;
+  // Build cards & deduct balance
+  const ps=st.players||{};
+  Object.entries(ps).forEach(([pid,p])=>{
+    const n=p.numCards||1;
+    const cost=n*BET;
+    p.balance=Math.max(0,(p.balance||0)-cost);
+    p.cardGrids=genCards(n);
+    p.markedNums=[];
+    p.rowsWon={};  // {cardIdx: [rowIdx,...]}
+    p.fullWon=[];
+    p.claimedWins=[];
+    p.online=Date.now();
+  });
+  st.phase='playing';
+  st.drawn=[];
+  st.currentBall=null;
+  st.round=st.round||1;
+  st.startedAt=Date.now();
+  await db.ref('rooms/'+myRoom).set(st);
+}
+
+// ══════════════════════════════════════════════════════════════
+// CARD GENERATION
+// ══════════════════════════════════════════════════════════════
+function genCards(n){ return Array.from({length:n},()=>genOneCard()); }
+
+function genOneCard(){
+  const ranges=[[1,9],[10,19],[20,29],[30,39],[40,49],[50,59],[60,69],[70,79],[80,90]];
+  const seen=new Set();
+  return Array.from({length:3},()=>{
+    const row=Array(9).fill(0);
+    const cols=shuffle([0,1,2,3,4,5,6,7,8]).slice(0,5).sort((a,b)=>a-b);
+    cols.forEach(c=>{
+      const [lo,hi]=ranges[c];
+      let v,t=0;
+      do{v=lo+~~(Math.random()*(hi-lo+1));t++;}while(seen.has(v)&&t<80);
+      row[c]=v; seen.add(v);
+    });
+    return row;
+  });
+}
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=~~(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+// ══════════════════════════════════════════════════════════════
+// FIREBASE LISTENER
+// ══════════════════════════════════════════════════════════════
+function listenRoom(){
+  if(roomListener){roomRef.off('value',roomListener);roomListener=null;}
+  roomRef=db.ref('rooms/'+myRoom);
+  roomListener=roomRef.on('value',snap=>{
+    if(!snap.exists()){
+      // Room deleted
+      if(gamePhase!=='home'){alert('Phòng đã bị đóng!');doLeave();}
+      return;
+    }
+    const st=snap.val();
+    handleState(st);
+  });
+}
+
+function handleState(st){
+  if(!st)return;
+  if(gamePhase==='lobby'){
+    if(st.phase==='playing'){
+      initGameFromState(st);
+    } else {
+      renderLobby(st);
+    }
+  } else if(gamePhase==='game'){
+    updateGame(st);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// GAME INIT
+// ══════════════════════════════════════════════════════════════
+function initGameFromState(st){
+  showScreen('game-screen');
+  document.getElementById('rlbl').textContent='Ván '+st.round;
+  document.getElementById('room-lbl').textContent='📍 '+myRoom;
+  document.getElementById('hgctrl').style.display=isHost?'block':'none';
+  document.getElementById('ggctrl').style.display=isHost?'none':'block';
+
+  // Load my card data from state
+  const me=st.players&&st.players[myId];
+  if(!me){console.error('Không tìm thấy player!');return;}
+  myBalance=me.balance||myBalance;
+  myNumCards=me.numCards||1;
+
+  // Build local card objects
+  const grids=me.cardGrids||genCards(myNumCards);
+  const marked=new Set(me.markedNums||[]);
+  const rowsWon=me.rowsWon||{};
+  const fullWon=new Set(me.fullWon||[]);
+  claimedKeys=new Set(me.claimedWins||[]);
+
+  myCards=grids.map((grid,i)=>({
+    id:i+1, grid,
+    marked:new Set(marked),
+    rowsWon:new Set((rowsWon[i]||[])),
+    fullWon:fullWon.has(i)
+  }));
+
+  latestDrawn=[];
+  latestBall=null;
+  buildCalledGrid();
+  renderMyCards();
+  updateGameBal();
+  updatePrizeTbl();
+  renderPlayers(st);
+
+  // Apply already-drawn numbers
+  const drawn=st.drawn||[];
+  drawn.forEach(n=>{
+    const el=document.getElementById('cn-'+n);
+    if(el)el.classList.add('hit');
+  });
+  if(drawn.length>0){
+    autoMark(drawn);
+  }
+  latestDrawn=drawn;
+  latestBall=st.currentBall;
+  if(st.currentBall){animBall(st.currentBall,false);}
+  updateStats(drawn.length);
+  updateClaimBtns();
+  updateGameStatus(st);
+}
+
+// ══════════════════════════════════════════════════════════════
+// GAME UPDATE (called on every Firebase change)
+// ══════════════════════════════════════════════════════════════
+function updateGame(st){
+  if(!st)return;
+  const drawn=st.drawn||[];
+  const newNums=drawn.filter(n=>!latestDrawn.includes(n));
+
+  // New numbers drawn
+  if(newNums.length>0){
+    newNums.forEach(n=>{
+      const el=document.getElementById('cn-'+n);
+      if(el){el.classList.add('hit','new');setTimeout(()=>el.classList.remove('new'),600);}
+      addLog(`🎱 Số ${n}`);
+    });
+    autoMark(drawn);
+    latestDrawn=drawn;
+    if(st.currentBall && st.currentBall!==latestBall){
+      animBall(st.currentBall,true);
+      latestBall=st.currentBall;
+    }
+    updateStats(drawn.length);
+    updateClaimBtns();
+  }
+
+  // Phase change: new round
+  if(st.phase==='playing' && st.round && st.round>parseInt(document.getElementById('rlbl').textContent.replace('Ván ',''))){
+    initGameFromState(st);
+    return;
+  }
+
+  renderPlayers(st);
+  updateGameStatus(st);
+
+  if(st.phase==='ended'){
+    stopAuto();
+    const dbtn=document.getElementById('dbtn');
+    if(dbtn)dbtn.disabled=true;
+    document.getElementById('gstatus2').textContent='✅ Ván kết thúc! Hết 90 số rồi.';
+  }
+}
+
+function autoMark(drawn){
+  const autoCb=document.getElementById(isHost?'dcb':'dcbg');
+  if(!autoCb||!autoCb.checked)return;
+  myCards.forEach(card=>{
+    drawn.forEach(n=>{
+      if(!card.marked.has(n)){
+        card.grid.forEach((row,ri)=>{
+          row.forEach((val,ci)=>{
+            if(val===n){
+              card.marked.add(n);
+              const el=document.getElementById(`c${card.id}-${ri}-${ci}`);
+              if(el)el.classList.add('marked');
+            }
+          });
+        });
+      }
+    });
+    checkCardWins(card);
+  });
+}
+
+function checkCardWins(card){
+  let changed=false;
+  for(let r=0;r<3;r++){
+    if(card.rowsWon.has(r))continue;
+    const rowNums=card.grid[r].filter(v=>v>0);
+    if(rowNums.length>0&&rowNums.every(n=>card.marked.has(n))){
+      card.rowsWon.add(r);
+      // Highlight row
+      for(let c=0;c<9;c++){
+        const el=document.getElementById(`c${card.id}-${r}-${c}`);
+        if(el&&card.grid[r][c]>0)el.classList.add('row-ok');
+      }
+      changed=true;
+    }
+  }
+  const allNums=card.grid.flat().filter(v=>v>0);
+  if(!card.fullWon&&allNums.every(n=>card.marked.has(n))){
+    card.fullWon=true;
+    for(let r=0;r<3;r++)for(let c=0;c<9;c++){
+      const el=document.getElementById(`c${card.id}-${r}-${c}`);
+      if(el&&card.grid[r][c]>0){el.classList.remove('row-ok');el.classList.add('loto-c');}
+    }
+    changed=true;
+  }
+  if(changed)updateClaimBtns();
+}
+
+// ══════════════════════════════════════════════════════════════
+// CLAIM WINS
+// ══════════════════════════════════════════════════════════════
+function updateClaimBtns(){
+  const area=document.getElementById('claim-area');
+  const btns=[];
+  myCards.forEach(card=>{
+    const ci=card.id-1;
+    if(card.fullWon){
+      const k=`${ci}-full`;
+      if(!claimedKeys.has(k)){
+        btns.push(`<button class="cbtn cbtn-loto" onclick="claimWin(${ci},'full')">💎 LÔ TÔ! Vé ${card.id} — Nhấn ngay!</button>`);
+      }
+    } else if(card.rowsWon.size>0){
+      const rw=card.rowsWon.size;
+      const k=`${ci}-row-${rw}`;
+      if(!claimedKeys.has(k)){
+        btns.push(`<button class="cbtn cbtn-xo" onclick="claimWin(${ci},'xo')">🎉 XỔ! Vé ${card.id} — ${rw} hàng — Nhấn ngay!</button>`);
+      }
+    }
+  });
+  area.innerHTML=btns.join('');
+}
+
+async function claimWin(ci,type){
+  const card=myCards[ci];
+  if(!card)return;
+  let prize=0, prizeName='', key='';
+
+  if(type==='full'){
+    key=`${ci}-full`;
+    if(claimedKeys.has(key))return;
+    claimedKeys.add(key);
+    prize=PRIZES.loto;
+    prizeName=`💎 LÔ TÔ! Vé ${ci+1}`;
+    // Also collect any unclaimed row prizes
+    [1,2,3].forEach(rw=>{
+      const rk=`${ci}-row-${rw}`;
+      if(!claimedKeys.has(rk)&&card.rowsWon.size>=rw){
+        claimedKeys.add(rk);
+        prize+=[0,PRIZES.row1,PRIZES.row2,PRIZES.row3][rw]||0;
+      }
+    });
+    launchConfetti();
+    showToast('💎 LÔ TÔ!!!',`Vé ${ci+1} — +${prize.toLocaleString()} 🪙!`);
+  } else {
+    const rw=card.rowsWon.size;
+    key=`${ci}-row-${rw}`;
+    if(claimedKeys.has(key))return;
+    // Collect all unclaimed row prizes up to rw
+    for(let i=1;i<=rw;i++){
+      const rk=`${ci}-row-${i}`;
+      if(!claimedKeys.has(rk)){
+        claimedKeys.add(rk);
+        prize+=[0,PRIZES.row1,PRIZES.row2,PRIZES.row3][i]||0;
+      }
+    }
+    prizeName=`🎉 XỔ Hàng ${rw} — Vé ${ci+1}`;
+    showToast(`🎉 XỔ HÀNG ${rw}!`,`Vé ${ci+1} — +${prize.toLocaleString()} 🪙!`);
+  }
+
+  if(prize>0){
+    myBalance+=prize;
+    updateGameBal();
+    saveBalance();
+    addLog(prizeName,prize);
+  }
+
+  // Write claimed wins back to Firebase
+  try{
+    await db.ref('rooms/'+myRoom+'/players/'+myId).update({
+      claimedWins:[...claimedKeys],
+      balance:myBalance,
+      rowsWon:Object.fromEntries(myCards.map((c,i)=>[i,[...c.rowsWon]])),
+      fullWon:myCards.filter(c=>c.fullWon).map((_,i)=>i),
+      markedNums:[...new Set(myCards.flatMap(c=>[...c.marked]))]
+    });
+  }catch(e){}
+
+  updateClaimBtns();
+}
+
+// ══════════════════════════════════════════════════════════════
+// HOST DRAW
+// ══════════════════════════════════════════════════════════════
+async function hostDraw(){
+  if(!isHost)return;
+  const snap=await db.ref('rooms/'+myRoom).once('value');
+  const st=snap.val();
+  if(!st||st.phase!=='playing')return;
+  const drawn=st.drawn||[];
+  const pool=[];for(let i=1;i<=90;i++)if(!drawn.includes(i))pool.push(i);
+  if(pool.length===0){
+    await db.ref('rooms/'+myRoom+'/phase').set('ended');
+    stopAuto();return;
+  }
+  const num=pool[~~(Math.random()*pool.length)];
+  const newDrawn=[...drawn,num];
+  await db.ref('rooms/'+myRoom).update({drawn:newDrawn,currentBall:num,lastDraw:Date.now()});
+}
+
+async function hostNewRound(){
+  if(!isHost)return;
+  const snap=await db.ref('rooms/'+myRoom).once('value');
+  const st=snap.val();if(!st)return;
+  const ps=st.players||{};
+  Object.entries(ps).forEach(([pid,p])=>{
+    const n=p.numCards||1;
+    p.balance=Math.max(0,(p.balance||0)-n*BET);
+    p.cardGrids=genCards(n);
+    p.markedNums=[];p.rowsWon={};p.fullWon=[];p.claimedWins=[];p.online=Date.now();
+  });
+  st.phase='playing';st.drawn=[];st.currentBall=null;
+  st.round=(st.round||1)+1;st.startedAt=Date.now();
+  await db.ref('rooms/'+myRoom).set(st);
+}
+
+// ══════════════════════════════════════════════════════════════
+// AUTO DRAW
+// ══════════════════════════════════════════════════════════════
+function toggleAuto(){
+  const on=document.getElementById('acb').checked;
+  if(on)startAuto();else stopAuto();
+}
+function startAuto(){
+  if(autoTimer)return;
+  const ms=getSpd();
+  autoTimer=setInterval(()=>{if(gamePhase==='game')hostDraw();else stopAuto();},ms);
+}
+function stopAuto(){
+  if(autoTimer){clearInterval(autoTimer);autoTimer=null;}
+  const cb=document.getElementById('acb');if(cb)cb.checked=false;
+}
+function getSpd(){return 3800-parseInt(document.getElementById('spd')?.value||1800);}
+function onSpdChg(){
+  const ms=getSpd();
+  const l=document.getElementById('slbl');if(l)l.textContent=(ms/1000).toFixed(1)+'s';
+  if(autoTimer){stopAuto();document.getElementById('acb').checked=true;startAuto();}
+}
+
+// ══════════════════════════════════════════════════════════════
+// UI
+// ══════════════════════════════════════════════════════════════
+function buildCalledGrid(){
+  const g=document.getElementById('cgrid');if(!g)return;
+  const lbls=['1-9','10-19','20-29','30-39','40-49','50-59','60-69','70-79','80-90'];
+  g.innerHTML=lbls.map(l=>`<div class="clbl">${l}</div>`).join('')+
+    Array.from({length:90},(_,i)=>`<div class="cnum" id="cn-${i+1}">${i+1}</div>`).join('');
+}
+
+function renderMyCards(){
+  const area=document.getElementById('mycards');if(!area)return;
+  area.innerHTML=myCards.map(card=>`
+    <div class="lcard" id="card-${card.id}">
+      <div class="card-hdr"><span>🎴 VÉ ${card.id}</span><span>Ván ${document.getElementById('rlbl')?.textContent||''}</span></div>
+      <div class="card-grid">
+        ${card.grid.map((row,ri)=>row.map((val,ci)=>`
+          <div class="cell${val===0?' empty':''}" id="c${card.id}-${ri}-${ci}">${val>0?val:''}</div>
+        `).join('')).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function animBall(num,animate){
+  const ball=document.getElementById('mball');if(!ball)return;
+  if(animate){ball.classList.remove('pop');void ball.offsetWidth;}
+  ball.textContent=num;
+  if(animate)ball.classList.add('pop');
+  const ho=getHo(num);
+  const so=document.getElementById('hso');
+  const txt=document.getElementById('htxt');
+  const sub=document.getElementById('hsub');
+  if(so)so.textContent=ho.so;
+  if(txt)txt.textContent=ho.text;
+  if(sub)sub.textContent='🎱 Lô Tô Hội Chợ ơi!';
+}
+
+function updateStats(n){
+  const dc=document.getElementById('dcnt');const rc=document.getElementById('rcnt');const p=document.getElementById('prog');
+  if(dc)dc.textContent=n;if(rc)rc.textContent=90-n;if(p)p.style.width=(n/90*100)+'%';
+}
+
+function updateGameBal(){
+  const el=document.getElementById('gbal');if(!el)return;
+  el.textContent=myBalance.toLocaleString()+' 🪙';
+  el.classList.add('bump');setTimeout(()=>el.classList.remove('bump'),300);
+}
+
+function updatePrizeTbl(){
+  const t=document.getElementById('ptbl');if(!t)return;
+  t.innerHTML=`
+    🏅 Xổ hàng 1: <strong style="color:var(--gold)">${PRIZES.row1}🪙</strong>/vé<br>
+    🥈 Xổ hàng 2: <strong style="color:var(--gold)">+${PRIZES.row2}🪙</strong>/vé<br>
+    🥇 Xổ hàng 3: <strong style="color:var(--gold)">+${PRIZES.row3}🪙</strong>/vé<br>
+    💎 Lô Tô!: <strong style="color:var(--gold)">+${PRIZES.loto}🪙</strong>/vé<br>
+    <span style="opacity:.45;font-size:.65rem">500🪙/vé · Phải nhấn HÔ!</span>`;
+}
+
+function renderPlayers(st){
+  const area=document.getElementById('pgame');if(!area)return;
+  const ps=st.players||{};
+  area.innerHTML=Object.entries(ps).map(([pid,p])=>{
+    const isMe=pid===myId;
+    const isH=pid===st.host;
+    const drawn=st.drawn||[];
+    // Count wins from claimedWins
+    const claimed=p.claimedWins||[];
+    const hasLoto=claimed.some(k=>k.endsWith('-full'));
+    const hasXo=claimed.some(k=>k.includes('-row-'));
+    return `<div class="pmini${isMe?' me':''}">
+      <div class="pn">
+        <span>${p.avatar||'🎴'}</span>
+        <span>${esc(p.name)}${isH?' 👑':''}${isMe?' <small style="color:#3498db">(bạn)</small>':''}</span>
+        <span style="margin-left:auto;font-size:.68rem;color:rgba(255,255,255,.35)">${(p.balance||0).toLocaleString()}🪙</span>
+      </div>
+      <div style="font-size:.68rem;color:rgba(255,255,255,.38)">${p.numCards||1} vé</div>
+      <div>
+        ${hasLoto?'<span class="rchip lt">💎 Lô Tô!</span>':hasXo?'<span class="rchip won">✅ Đã xổ</span>':'<span class="rchip idle">Đang chơi</span>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateGameStatus(st){
+  const el=document.getElementById('gstatus');
+  if(el&&!isHost){
+    if(st.phase==='ended')el.textContent='✅ Ván kết thúc!';
+    else el.textContent='⏳ Chờ quản trò quay số...';
+  }
+}
+
+function addLog(text,prize){
+  const log=document.getElementById('glog');if(!log)return;
+  const d=document.createElement('div');d.className='lentry';
+  d.innerHTML=`<span>${text}</span>${prize?`<span class="lwn">+${prize.toLocaleString()}🪙</span>`:''}`;
+  log.insertBefore(d,log.firstChild);
+  if(log.children.length>50)log.removeChild(log.lastChild);
+}
+
+let ttmr;
+function showToast(title,msg){
+  document.getElementById('t-ttl').textContent=title;
+  document.getElementById('t-msg').textContent=msg;
+  const t=document.getElementById('toast');t.classList.add('show');
+  clearTimeout(ttmr);ttmr=setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// ══════════════════════════════════════════════════════════════
+// LEAVE
+// ══════════════════════════════════════════════════════════════
+async function doLeave(){
+  stopAuto();
+  if(roomListener&&roomRef){roomRef.off('value',roomListener);roomListener=null;}
+  if(myRoom){
+    try{
+      const snap=await db.ref('rooms/'+myRoom).once('value');
+      if(snap.exists()){
+        const st=snap.val();
+        if(st.players&&st.players[myId]){
+          // Update balance first
+          await db.ref('rooms/'+myRoom+'/players/'+myId+'/balance').set(myBalance);
+          await db.ref('rooms/'+myRoom+'/players/'+myId).remove();
+          const rem=Object.keys(st.players).filter(p=>p!==myId);
+          if(rem.length===0){
+            await db.ref('rooms/'+myRoom).remove();
+          } else if(st.host===myId){
+            await db.ref('rooms/'+myRoom+'/host').set(rem[0]);
+          }
+        }
+      }
+    }catch(e){}
+  }
+  myRoom='';isHost=false;latestDrawn=[];latestBall=null;claimedKeys.clear();
+  document.getElementById('ji').value='';
+  showScreen('home-screen');
+  document.getElementById('home-bal').textContent=myBalance.toLocaleString()+' 🪙';
+  buildCalledGrid();
+}
+
+function cpCode(){
+  navigator.clipboard?.writeText(myRoom).then(()=>{
+    const btn=document.querySelector('.copy-btn');
+    if(btn){btn.textContent='✅ Đã copy!';setTimeout(()=>btn.textContent='📋 Copy',2000);}
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// CONFETTI
+// ══════════════════════════════════════════════════════════════
+function launchConfetti(){
+  const cv=document.getElementById('cfc');const ctx=cv.getContext('2d');
+  cv.width=innerWidth;cv.height=innerHeight;
+  const ps=Array.from({length:180},()=>({x:Math.random()*cv.width,y:-20,r:5+Math.random()*7,d:4+Math.random()*9,color:['#f1c40f','#e74c3c','#27ae60','#3498db','#fff','#e67e22'][~~(Math.random()*6)],ta:0,tai:.06+Math.random()*.06}));
+  let f=0;const anim=setInterval(()=>{ctx.clearRect(0,0,cv.width,cv.height);f++;
+    ps.forEach(p=>{p.ta+=p.tai;p.y+=(Math.cos(p.d)+p.r/2)/6+p.d/22;p.x+=Math.sin(f/22)*1.4;
+      ctx.beginPath();ctx.lineWidth=p.r;ctx.strokeStyle=p.color;const t=Math.sin(p.ta)*12;
+      ctx.moveTo(p.x+t+p.r/3,p.y);ctx.lineTo(p.x+t,p.y+t+p.r/5);ctx.stroke();});
+    if(f>280){clearInterval(anim);ctx.clearRect(0,0,cv.width,cv.height);}},16);
+}
+
+// ══════════════════════════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════════════════════════
+initPlayer();
+</script>
+</body>
+</html>
